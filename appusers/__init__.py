@@ -1,5 +1,5 @@
 from flask import Flask
-from appusers import users, groups
+from appusers import users, groups, login
 
 
 def create_app():
@@ -13,5 +13,6 @@ def create_app():
         # Register Blueprints
         app.register_blueprint(users.bp)
         app.register_blueprint(groups.bp)
+        app.register_blueprint(login.bp)
 
         return app
