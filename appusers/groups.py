@@ -10,20 +10,27 @@ as well as all Operations related to:
 Blueprint is registered in Application Factory function.
 """
 
-from flask import Blueprint, jsonify, make_response
-from appusers.users import users_list
+from flask import Blueprint, request, jsonify, make_response, url_for
+from appusers.models import Group, group_schema, group_list_schema
 
 
 # Create Groups enpoint Blueprint
 bp = Blueprint('groups', __name__, url_prefix='/groups')
 
 # Initialize some data
-groups_list = [{'id': 0,
-                'groupname': 'admins',
-                'description': 'Administrators'},
-               {'id': 1,
-                'groupname': 'friends',
-                'description': 'Friends and Family'}]
+admins = Group(
+    groupid=0,
+    groupname='admins',
+    description='Administrators'
+    )
+friends = Group(
+    groupid=1,
+    groupname='friends',
+    description='Friends and Family'
+)
+
+groups_list = {0: admins, 1: friends}
+groups_max_index = 1
 
 @bp.route('', methods=['GET'])
 def list_groups():
@@ -37,7 +44,8 @@ def list_groups():
     Returns:
         JSON array of Group Resource Representations or Error Message
     """
-    return jsonify(groups_list)
+    list = groups_list.values()
+    return jsonify(group_list_schema.dump(list))
 
 @bp.route('', methods=['POST'])
 def create_group():
@@ -51,8 +59,24 @@ def create_group():
         Confirmation or Error Message
         'Location' Response Header
     """
-    response = make_response("Created", 201)
-    response.headers['Location'] = '/groups/0'
+    global groups_max_index
+
+    if not request.is_json:
+        return make_response('Unsupported Media Type', 415)
+
+    try:
+        data = request.get_json()
+        groups_max_index = groups_max_index + 1
+        data['groupid'] = groups_max_index
+        new_group = group_schema.load(data)
+    except Exception as e:
+        groups_max_index -= 1
+        return make_response('Bad request', 400)
+
+    groups_list[groups_max_index] = new_group
+    response = make_response('Created', 201)
+    response.headers['Location'] = url_for('groups.retrieve_group', groupid=new_group.groupid)
+
     return response
 
 @bp.route('/<int:groupid>', methods=['GET'])
@@ -66,10 +90,10 @@ def retrieve_group(groupid):
     Returns:
         JSON Object with Group Resource Representation or Error Message
     """
-    if 0 <= groupid and groupid <= len(groups_list):
-        return jsonify(groups_list[groupid])
+    if groupid in groups_list:
+        return jsonify(group_schema.dump(groups_list[groupid]))
     else:
-        return "Not Found", 404
+        return make_response('Not Found', 404)
 
 @bp.route('/<int:groupid>', methods=['PUT'])
 def replace_group(groupid):
@@ -83,7 +107,22 @@ def replace_group(groupid):
     Returns:
         Confirmation or Error Message
     """
-    return "Replace Group Resource Representation mock-up", 200
+    if groupid not in groups_list:
+        return make_response('Not found', 404)
+
+    if not request.is_json:
+        return make_response('Unsupported Media Type', 415)
+
+    try:
+        data = request.get_json()
+        data['groupid'] = groupid
+        new_group = group_schema.load(data)
+    except Exception as e:
+        return make_response('Bad request', 400)
+
+    groups_list[groupid] = new_group
+
+    return make_response('OK', 200)
 
 @bp.route('/<int:groupid>', methods=['PATCH'])
 def update_group(groupid):
@@ -110,7 +149,11 @@ def delete_group(groupid):
     Returns:
         Confirmation or Error Message
     """
-    return "Delete Group Resource mock-up", 200
+    if groupid in groups_list:
+        del groups_list[groupid]
+        return make_response('OK', 200)
+    else:
+        return make_response('Not found', 404)
 
 @bp.route('/<int:groupid>/members', methods=['GET'])
 def list_group_members(groupid):
@@ -124,10 +167,7 @@ def list_group_members(groupid):
     Returns:
         JSON array of User Resource Representations or Error Message
     """
-    if 0 <= groupid and groupid <= len(groups_list):
-        return jsonify(users_list)
-    else:
-        return "Not Found", 404
+    return "Retrieve Group members mock-up", 404
 
 @bp.route('/<int:groupid>/members/<int:userid>', methods=['PUT'])
 def add_user_to_group(groupid, userid):

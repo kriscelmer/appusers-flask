@@ -10,31 +10,32 @@ as well as all Operations related to:
 Blueprint is registered in Application Factory function.
 """
 
-from flask import Blueprint, jsonify, make_response
+from flask import Blueprint, request, jsonify, make_response, url_for
+from appusers.models import User, user_schema, user_list_schema
 
 
 # Create Users enpoint Blueprint
 bp = Blueprint('users', __name__, url_prefix='/users')
 
 # Initialize some data
-users_list = [{'id': 0,
-               'username': 'johne',
-               'firstname': 'John',
-               'lastname': 'Example',
-               'contactInfo': {
-                    'email': 'johne@example.com',
-                    'phone': '123.444.5555'
-                    }
-               },
-               {'id': 1,
-                'username': 'lindas',
-                'firstname': 'Linda',
-                'lastname': 'Someone',
-                'contactInfo': {
-                    'email': 'lindas@example.com',
-                    'phone': '123.444.6666'
-                }
-               }]
+johne = User(
+    userid=0,
+    username='johne',
+    firstname='John',
+    lastname='Example',
+    email='johne@example.com',
+    phone='123-444-5555'
+    )
+lindas = User(
+    userid=1,
+    username='lindas',
+    firstname='Linda',
+    lastname='Someone',
+    email='lindas@example.com',
+    phone='123.444.6666'
+    )
+users_list = {0: johne, 1: lindas}
+users_max_index = 1
 
 @bp.route('', methods=['GET'])
 def list_users():
@@ -48,7 +49,8 @@ def list_users():
     Returns:
         JSON array of User Resource Representations
     """
-    return jsonify(users_list)
+    list = users_list.values()
+    return jsonify(user_list_schema.dump(list))
 
 @bp.route('', methods=['POST'])
 def create_user():
@@ -62,8 +64,24 @@ def create_user():
         Confirmation or Error Message
         'Location' Response Header
     """
-    response = make_response("Created", 201)
-    response.headers['Location'] = '/users/0'
+    global users_max_index
+
+    if not request.is_json:
+        return make_response('Unsupported Media Type', 415)
+
+    try:
+        data = request.get_json()
+        users_max_index = users_max_index + 1
+        data['userid'] = users_max_index
+        new_user = user_schema.load(data)
+    except Exception as e:
+        users_max_index -= 1
+        return make_response('Bad request', 400)
+
+    users_list[users_max_index] = new_user
+    response = make_response('Created', 201)
+    response.headers['Location'] = url_for('users.retrieve_user', userid=new_user.userid)
+
     return response
 
 @bp.route('/<int:userid>', methods=['GET'])
@@ -77,8 +95,8 @@ def retrieve_user(userid):
     Returns:
         JSON Object with User Resource Representation or Error Message
     """
-    if 0 <= userid and userid <= len(users_list):
-        return jsonify(users_list[userid])
+    if userid in users_list:
+        return jsonify(user_schema.dump(users_list[userid]))
     else:
         return "Not Found", 404
 
@@ -94,7 +112,22 @@ def replace_user(userid):
     Returns:
         Confirmation or Error Message
     """
-    return "Replace User Resource Representation mock-up", 200
+    if userid not in users_list:
+        return make_response('Not found', 404)
+
+    if not request.is_json:
+        return make_response(f'Unsupported Media Type', 415)
+
+    try:
+        data = request.get_json()
+    except Exception as e:
+        return make_response('Bad request', 400)
+
+    data['userid'] = userid
+    new_user = user_schema.load(data)
+    users_list[userid] = new_user
+
+    return make_response('OK', 200)
 
 @bp.route('/<int:userid>', methods=['PATCH'])
 def update_user(userid):
@@ -121,7 +154,11 @@ def delete_user(userid):
     Returns:
         Confirmation or Error Message
     """
-    return "Delete User Resource mock-up", 200
+    if userid in users_list:
+        del users_list[userid]
+        return make_response('OK', 200)
+    else:
+        return make_response('Not found', 404)
 
 @bp.route('/<int:userid>/set-password', methods=['POST'])
 def set_password(userid):
