@@ -32,6 +32,12 @@ class Group:
         self.groupname = groupname
         self.description = description
 
+    def update(self, groupname=None, description=None, **kwargs):
+        if groupname:
+            self.groupname = groupname
+        if description:
+            self.description = description
+
     def __repr__(self):
         return f'<Group {self.groupname}>'
 
@@ -40,11 +46,6 @@ class GroupSchema(Schema):
     groupid = fields.Integer()
     groupname = fields.Str()
     description = fields.Str()
-
-    @post_load
-    def to_group_class(self, data, **kwargs):
-        """Convert dictionary to Group class object"""
-        return Group(**data)
 
 group_schema = GroupSchema()
 
@@ -63,6 +64,24 @@ class User:
         self.lastname = lastname
         self.email = email
         self.phone = phone
+
+    def update(self,
+            username=None,
+            firstname=None,
+            lastname=None,
+            email=None,
+            phone=None,
+            **kwargs):
+        if username:
+            self.username = username
+        if firstname:
+            self.firstname = firstname
+        if lastname:
+            self.lastname = lastname
+        if email:
+            self.email = email
+        if phone:
+            self.phone = phone
 
     def __repr__(self):
         return f'<User {self.username}>'
@@ -91,13 +110,13 @@ class UserSchema(Schema):
         return new_data
 
     @post_load
-    def to_user_class(self, load_data, **kwargs):
+    def to_user_dict(self, load_data, **kwargs):
         """Covert contactInfo to email and phone fields"""
         new_data = copy(load_data)
         new_data['email'] = new_data['contactInfo']['email']
         new_data['phone'] = new_data['contactInfo']['phone']
         del(new_data['contactInfo'])
-        return User(**new_data)
+        return new_data
 
 user_schema = UserSchema()
 

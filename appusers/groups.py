@@ -66,16 +66,16 @@ def create_group():
 
     try:
         data = request.get_json()
-        groups_max_index = groups_max_index + 1
-        data['groupid'] = groups_max_index
-        new_group = group_schema.load(data)
+        new_group_data = group_schema.load(data)
     except Exception as e:
-        groups_max_index -= 1
+        print(e)
         return make_response('Bad request', 400)
 
-    groups_list[groups_max_index] = new_group
+    groups_max_index = groups_max_index + 1
+    new_group_data['groupid'] = groups_max_index
+    groups_list[groups_max_index] = Group(**new_group_data)
     response = make_response('Created', 201)
-    response.headers['Location'] = url_for('groups.retrieve_group', groupid=new_group.groupid)
+    response.headers['Location'] = url_for('groups.retrieve_group', groupid=groups_max_index)
 
     return response
 
@@ -115,12 +115,11 @@ def replace_group(groupid):
 
     try:
         data = request.get_json()
-        data['groupid'] = groupid
-        new_group = group_schema.load(data)
+        new_group_data = group_schema.load(data)
     except Exception as e:
         return make_response('Bad request', 400)
 
-    groups_list[groupid] = new_group
+    groups_list[groupid].update(**new_group_data)
 
     return make_response('OK', 200)
 
@@ -136,7 +135,21 @@ def update_group(groupid):
     Returns:
         Confirmation or Error Message
     """
-    return "Update Group Resource Representation mock-up", 200
+    if groupid not in groups_list:
+        return make_response('Not found', 404)
+
+    if not request.is_json:
+        return make_response('Unsupported Media Type', 415)
+
+    try:
+        data = request.get_json()
+        new_group_data = group_schema.load(data)
+    except Exception as e:
+        return make_response('Bad request', 400)
+
+    groups_list[groupid].update(**new_group_data)
+
+    return make_response('OK', 200)
 
 @bp.route('/<int:groupid>', methods=['DELETE'])
 def delete_group(groupid):
@@ -150,7 +163,7 @@ def delete_group(groupid):
         Confirmation or Error Message
     """
     if groupid in groups_list:
-        del groups_list[groupid]
+        del(groups_list[groupid])
         return make_response('OK', 200)
     else:
         return make_response('Not found', 404)

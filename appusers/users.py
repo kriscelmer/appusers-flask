@@ -71,16 +71,15 @@ def create_user():
 
     try:
         data = request.get_json()
-        users_max_index = users_max_index + 1
-        data['userid'] = users_max_index
-        new_user = user_schema.load(data)
+        new_user_data = user_schema.load(data)
     except Exception as e:
-        users_max_index -= 1
         return make_response('Bad request', 400)
 
-    users_list[users_max_index] = new_user
+    users_max_index = users_max_index + 1
+    new_user_data['userid'] = users_max_index
+    users_list[users_max_index] = User(**new_user_data)
     response = make_response('Created', 201)
-    response.headers['Location'] = url_for('users.retrieve_user', userid=new_user.userid)
+    response.headers['Location'] = url_for('users.retrieve_user', userid=users_max_index)
 
     return response
 
@@ -120,12 +119,11 @@ def replace_user(userid):
 
     try:
         data = request.get_json()
-        data['userid'] = userid
-        new_user = user_schema.load(data)
+        new_user_data = user_schema.load(data)
     except Exception as e:
         return make_response('Bad request', 400)
 
-    users_list[userid] = new_user
+    users_list[userid].update(**new_user_data)
 
     return make_response('OK', 200)
 
@@ -141,7 +139,21 @@ def update_user(userid):
     Returns:
         Confirmation or Error Message
     """
-    return "Update User Resource Representation mock-up", 200
+    if userid not in users_list:
+        return make_response('Not found', 404)
+
+    if not request.is_json:
+        return make_response(f'Unsupported Media Type', 415)
+
+    try:
+        data = request.get_json()
+        new_user_data = user_schema.load(data)
+    except Exception as e:
+        return make_response('Bad request', 400)
+
+    users_list[userid].update(**new_user_data)
+
+    return make_response('OK', 200)
 
 @bp.route('/<int:userid>', methods=['DELETE'])
 def delete_user(userid):
@@ -155,7 +167,7 @@ def delete_user(userid):
         Confirmation or Error Message
     """
     if userid in users_list:
-        del users_list[userid]
+        del(users_list[userid])
         return make_response('OK', 200)
     else:
         return make_response('Not found', 404)
