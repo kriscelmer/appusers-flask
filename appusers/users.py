@@ -10,7 +10,8 @@ as well as all Operations related to:
 Blueprint is registered in Application Factory function.
 """
 
-from flask import Blueprint, request, jsonify, make_response, url_for
+from flask import Blueprint, request, jsonify, make_response, url_for, current_app
+from marshmallow import ValidationError
 from appusers.models import User, user_schema, user_list_schema
 
 
@@ -71,8 +72,15 @@ def create_user():
 
     try:
         data = request.get_json()
-        new_user_data = user_schema.load(data)
     except Exception as e:
+        return make_response('Bad request', 400)
+
+    try:
+        new_user_data = user_schema.load(data)
+    except ValidationError as e:
+        current_app.logger.warning(
+            f'create_user() failed.\nValidationError: {e}'
+            )
         return make_response('Bad request', 400)
 
     users_max_index = users_max_index + 1
@@ -119,8 +127,15 @@ def replace_user(userid):
 
     try:
         data = request.get_json()
-        new_user_data = user_schema.load(data)
     except Exception as e:
+        return make_response('Bad request', 400)
+
+    try:
+        new_user_data = user_schema.load(data)
+    except ValidationError as e:
+        current_app.logger.warning(
+            f'replace_user(userid={userid}) failed.\nValidationError: {e}'
+            )
         return make_response('Bad request', 400)
 
     users_list[userid].update(**new_user_data)
@@ -147,8 +162,15 @@ def update_user(userid):
 
     try:
         data = request.get_json()
-        new_user_data = user_schema.load(data)
     except Exception as e:
+        return make_response('Bad request', 400)
+
+    try:
+        new_user_data = user_schema.load(data, partial=True)
+    except ValidationError as e:
+        current_app.logger.warning(
+            f'upate_user(userid={userid}) failed.\nValidationError: {e}'
+            )
         return make_response('Bad request', 400)
 
     users_list[userid].update(**new_user_data)

@@ -10,7 +10,8 @@ as well as all Operations related to:
 Blueprint is registered in Application Factory function.
 """
 
-from flask import Blueprint, request, jsonify, make_response, url_for
+from flask import Blueprint, request, jsonify, make_response, url_for, current_app
+from marshmallow import ValidationError
 from appusers.models import Group, group_schema, group_list_schema
 
 
@@ -66,9 +67,15 @@ def create_group():
 
     try:
         data = request.get_json()
-        new_group_data = group_schema.load(data)
     except Exception as e:
-        print(e)
+        return make_response('Bad request', 400)
+
+    try:
+        new_group_data = group_schema.load(data)
+    except ValidationError as e:
+        current_app.logger.warning(
+            f'create_group() failed.\nValidationError: {e}'
+            )
         return make_response('Bad request', 400)
 
     groups_max_index = groups_max_index + 1
@@ -115,8 +122,15 @@ def replace_group(groupid):
 
     try:
         data = request.get_json()
-        new_group_data = group_schema.load(data)
     except Exception as e:
+        return make_response('Bad request', 400)
+
+    try:
+        new_group_data = group_schema.load(data)
+    except ValidationError as e:
+        current_app.logger.warning(
+            f'replace_group(groupid={groupid}) failed.\nValidationError: {e}'
+            )
         return make_response('Bad request', 400)
 
     groups_list[groupid].update(**new_group_data)
@@ -143,8 +157,15 @@ def update_group(groupid):
 
     try:
         data = request.get_json()
-        new_group_data = group_schema.load(data)
     except Exception as e:
+        return make_response('Bad request', 400)
+
+    try:
+        new_group_data = group_schema.load(data, partial=True)
+    except ValidationError as e:
+        current_app.logger.warning(
+            f'update_group(groupid={groupid}) failed.\nValidationError: {e}'
+            )
         return make_response('Bad request', 400)
 
     groups_list[groupid].update(**new_group_data)
