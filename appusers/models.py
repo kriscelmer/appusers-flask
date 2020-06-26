@@ -19,7 +19,7 @@ Response Body.
 """
 from copy import copy
 from flask_marshmallow import Marshmallow
-from marshmallow import Schema, fields, post_load, pre_dump
+from marshmallow import Schema, fields, pre_load, post_dump, validate
 
 
 # Marshmallow object is initialized in Application Factory
@@ -92,30 +92,32 @@ class UserSchema(Schema):
     username = fields.Str()
     firstname = fields.Str()
     lastname = fields.Str()
-    contactInfo = fields.Dict(
-        email=fields.Email(),
-        phone=fields.Str()
-        )
+    email = fields.Email()
+    phone = fields.Str()
 
-    @pre_dump
+    @post_dump
     def from_user_class(self, dump_data, **kwargs):
         """Convert email and phone fields to contactInfo"""
         new_data = copy(dump_data)
-        new_data.contactInfo = {
-            'email': new_data.email,
-            'phone': new_data.phone
+        new_data['contactInfo'] = {
+            'email': new_data['email'],
+            'phone': new_data['phone']
             }
-        del(new_data.email)
-        del(new_data.phone)
+        del(new_data['email'])
+        del(new_data['phone'])
         return new_data
 
-    @post_load
+    @pre_load
     def to_user_dict(self, load_data, **kwargs):
         """Covert contactInfo to email and phone fields"""
         new_data = copy(load_data)
-        new_data['email'] = new_data['contactInfo']['email']
-        new_data['phone'] = new_data['contactInfo']['phone']
-        del(new_data['contactInfo'])
+        # Handle partial User Data Model in Update User Resource operation
+        if 'contactInfo' in new_data:
+            if 'email' in new_data['contactInfo']:
+                new_data['email'] = new_data['contactInfo']['email']
+            if 'phone' in new_data['contactInfo']:
+                new_data['phone'] = new_data['contactInfo']['phone']
+            del(new_data['contactInfo'])
         return new_data
 
 user_schema = UserSchema()
