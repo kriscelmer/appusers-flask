@@ -120,11 +120,11 @@ def replace_user(userid):
 
     try:
         data = request.get_json()
+        data['userid'] = userid
+        new_user = user_schema.load(data)
     except Exception as e:
         return make_response('Bad request', 400)
 
-    data['userid'] = userid
-    new_user = user_schema.load(data)
     users_list[userid] = new_user
 
     return make_response('OK', 200)
