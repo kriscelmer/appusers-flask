@@ -50,8 +50,8 @@ def list_users():
     Returns:
         JSON array of User Resource Representations
     """
-    list = users_list.values()
-    return jsonify(user_list_schema.dump(list))
+    filtered_list = users_list.values()
+    return jsonify(user_list_schema.dump(filtered_list))
 
 @bp.route('', methods=['POST'])
 def create_user():

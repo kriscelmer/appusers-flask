@@ -45,8 +45,8 @@ def list_groups():
     Returns:
         JSON array of Group Resource Representations or Error Message
     """
-    list = groups_list.values()
-    return jsonify(group_list_schema.dump(list))
+    filtered_list = groups_list.values()
+    return jsonify(group_list_schema.dump(filtered_list))
 
 @bp.route('', methods=['POST'])
 def create_group():
