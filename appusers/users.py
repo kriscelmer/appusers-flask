@@ -12,7 +12,7 @@ Blueprint is registered in Application Factory function.
 
 from flask import Blueprint, request, jsonify, make_response, url_for, current_app
 from marshmallow import ValidationError
-from appusers.models import User, user_schema, user_list_schema
+from appusers.models import User, user_schema, user_list_schema, users_filters_schema
 
 
 # Create Users enpoint Blueprint
@@ -50,8 +50,20 @@ def list_users():
     Returns:
         JSON array of User Resource Representations
     """
-    list = users_list.values()
-    return jsonify(user_list_schema.dump(list))
+    try:
+        filters = users_filters_schema.load(request.args)
+    except ValidationError as e:
+        current_app.logger.warning(
+            f'list_group() Query String validation failed.\nValidationError: {e}'
+            )
+        return make_response('Bad request', 400)
+
+    current_app.logger.info(
+        f'list_groups(): Validated filters are: {filters}'
+        )
+
+    filtered_list = users_list.values()
+    return jsonify(user_list_schema.dump(filtered_list))
 
 @bp.route('', methods=['POST'])
 def create_user():

@@ -12,7 +12,7 @@ Blueprint is registered in Application Factory function.
 
 from flask import Blueprint, request, jsonify, make_response, url_for, current_app
 from marshmallow import ValidationError
-from appusers.models import Group, group_schema, group_list_schema
+from appusers.models import Group, group_schema, group_list_schema, groups_filters_schema
 
 
 # Create Groups enpoint Blueprint
@@ -45,8 +45,20 @@ def list_groups():
     Returns:
         JSON array of Group Resource Representations or Error Message
     """
-    list = groups_list.values()
-    return jsonify(group_list_schema.dump(list))
+    try:
+        filters = groups_filters_schema.load(request.args)
+    except ValidationError as e:
+        current_app.logger.warning(
+            f'list_group() Query String validation failed.\nValidationError: {e}'
+            )
+        return make_response('Bad request', 400)
+
+    current_app.logger.info(
+        f'list_groups(): Validated filters are: {filters}'
+        )
+
+    filtered_list = groups_list.values()
+    return jsonify(group_list_schema.dump(filtered_list))
 
 @bp.route('', methods=['POST'])
 def create_group():
