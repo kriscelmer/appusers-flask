@@ -3,7 +3,6 @@
 This module declares utility functions and decorators:
 
     - json_body
-    -
 """
 from functools import wraps
 from flask import request, make_response

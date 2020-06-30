@@ -136,12 +136,16 @@ class UserSchema(Schema):
     def from_user_class(self, dump_data, **kwargs):
         """Convert email and phone fields to contactInfo"""
         new_data = copy(dump_data)
-        new_data['contactInfo'] = {
-            'email': new_data['email'],
-            'phone': new_data['phone']
-            }
-        del(new_data['email'])
-        del(new_data['phone'])
+        # Adapted for partial dump with return_fields
+        if 'email' in new_data:
+            new_data['contactInfo'] = {}
+            new_data['contactInfo']['email'] = new_data['email']
+            del(new_data['email'])
+        if 'phone' in new_data:
+            if 'contactInfo' not in new_data:
+                new_data['contactInfo'] = {}
+            new_data['contactInfo']['phone'] = new_data['phone']
+            del(new_data['phone'])
         return new_data
 
     @pre_load

@@ -6,6 +6,8 @@ User Resource is internally stored in User class object.
 Group Resource is internally stored in Group class object.
 """
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import text
+from sqlalchemy.orm import load_only
 
 
 # Database object is initialized in Application Factory
@@ -45,8 +47,27 @@ class Group(db.Model):
     @classmethod
     def get_list(cls, filters):
         """Retrieve a filtered list of Group Objects from Database"""
-        # Mock-up
-        return cls.query.all()
+        query = cls.query
+
+        if 'groupname' in filters:
+            groupnames = filters['groupname'].split(',')
+            query = query.filter(Group.groupname.in_(groupnames))
+        if 'sortBy' in filters:
+            # query.order_by() must be called before offset() or limit()
+            sort_by = []
+            for col in filters['sortBy'].split(','):
+                if col[0] == '-':
+                    col = text(f'{col[1:]} DESC')
+                else:
+                    col = text(col)
+                sort_by.append(col)
+            query = query.order_by(*sort_by)
+        if 'offset' in filters:
+            query = query.offset(filters['offset'])
+        if 'limit' in filters:
+            query = query.limit(filters['limit'])
+
+        return query.all()
 
     def __repr__(self):
         return f'<Group {self.groupname}>'
@@ -100,8 +121,37 @@ class User(db.Model):
     @classmethod
     def get_list(cls, filters):
         """Retrieve a filtered list of User Objects from Database"""
-        # Mock-up
-        return cls.query.all()
+        query = cls.query
+
+        if 'username' in filters:
+            usernames = filters['username'].split(',')
+            query = query.filter(User.username.in_(usernames))
+        if 'firstname' in filters:
+            firstnames = filters['firstname'].split(',')
+            query = query.filter(User.firstname.in_(firstnames))
+        if 'lastname' in filters:
+            lastnames = filters['lastname'].split(',')
+            query = query.filter(User.lastname.in_(lastnames))
+        if 'email' in filters:
+            query = query.filter(User.email == filters['email'])
+        if 'phone' in filters:
+            query = query.filter(User.phone == filters['phone'])
+        if 'sortBy' in filters:
+            # query.order_by() must be called before offset() or limit()
+            sort_by = []
+            for col in filters['sortBy'].split(','):
+                if col[0] == '-':
+                    col = text(f'{col[1:]} DESC')
+                else:
+                    col = text(col)
+                sort_by.append(col)
+            query = query.order_by(*sort_by)
+        if 'offset' in filters:
+            query = query.offset(filters['offset'])
+        if 'limit' in filters:
+            query = query.limit(filters['limit'])
+
+        return query.all()
 
     def __repr__(self):
         return f'<User {self.username}>'

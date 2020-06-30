@@ -12,7 +12,7 @@ Blueprint is registered in Application Factory function.
 
 from flask import Blueprint, request, jsonify, make_response, url_for, current_app
 from marshmallow import ValidationError
-from appusers.models import group_schema, group_list_schema, groups_filters_schema
+from appusers.models import group_schema, group_list_schema, groups_filters_schema, GroupListSchema
 from appusers.database import Group
 from appusers.utils import json_body
 
@@ -40,12 +40,13 @@ def list_groups():
             )
         return make_response('Bad request', 400)
 
-    current_app.logger.info(
-        f'list_groups(): Validated filters are: {filters}'
-        )
-
     filtered_list = Group.get_list(filters)
-    return jsonify(group_list_schema.dump(filtered_list))
+    if 'return_fields' in filters:
+        return_fields = filters['return_fields'].split(',') + ['href']
+        groups = GroupListSchema(many=True, only=return_fields).dump(filtered_list)
+    else:
+        groups = group_list_schema.dump(filtered_list)
+    return jsonify(groups)
 
 @bp.route('', methods=['POST'])
 @json_body
