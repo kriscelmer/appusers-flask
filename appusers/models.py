@@ -1,10 +1,7 @@
 """Data Models module
 
-This module declares Data Models of User and Group Resources,
+This module declares Marshmallow Data Models of User and Group Resources,
 as well as Query String Parameters.
-
-User Resource is internally stored in User class object.
-Group Resource is internally stored in Group class object.
 
 group_schema object provides serialization (dump), deserialization (load)
 and validation of Group Resource.
@@ -33,22 +30,6 @@ from marshmallow import Schema, fields, pre_load, post_dump, validate, validates
 # Marshmallow object is initialized in Application Factory
 ma = Marshmallow()
 
-class Group:
-    """Internal representation of Group Resource"""
-    def __init__(self, groupid, groupname, description):
-        self.groupid = groupid
-        self.groupname = groupname
-        self.description = description
-
-    def update(self, groupname=None, description=None, **kwargs):
-        if groupname:
-            self.groupname = groupname
-        if description:
-            self.description = description
-
-    def __repr__(self):
-        return f'<Group {self.groupname}>'
-
 class GroupSchema(Schema):
     """Data Model (schema) of external representation of Group Resource"""
     groupid = fields.Integer()
@@ -65,7 +46,7 @@ group_schema = GroupSchema()
 
 class GroupListSchema(GroupSchema):
     """Data Model (schema) of Response Body of List Groups Collection"""
-    href = ma.URLFor("groups.retrieve_group", groupid="<groupid>")
+    href = ma.URLFor("groups.retrieve_group", groupid="<groupid>", _external=True)
 
 group_list_schema = GroupListSchema(many=True)
 
@@ -115,37 +96,6 @@ class GroupsQueryStringSchema(Schema):
         return True
 
 groups_filters_schema = GroupsQueryStringSchema()
-
-class User:
-    """Internal representation of User Resource"""
-    def __init__(self, userid, username, firstname, lastname, email, phone):
-        self.userid = userid
-        self.username = username
-        self.firstname = firstname
-        self.lastname = lastname
-        self.email = email
-        self.phone = phone
-
-    def update(self,
-            username=None,
-            firstname=None,
-            lastname=None,
-            email=None,
-            phone=None,
-            **kwargs):
-        if username:
-            self.username = username
-        if firstname:
-            self.firstname = firstname
-        if lastname:
-            self.lastname = lastname
-        if email:
-            self.email = email
-        if phone:
-            self.phone = phone
-
-    def __repr__(self):
-        return f'<User {self.username}>'
 
 class UserSchema(Schema):
     """Data Model (schema) of external representation of User Resource"""
@@ -211,7 +161,7 @@ user_schema = UserSchema()
 
 class UserListSchema(UserSchema):
     """Data Model (schema) of Response Body of List Users Collection"""
-    href = ma.URLFor("users.retrieve_user", userid="<userid>")
+    href = ma.URLFor("users.retrieve_user", userid="<userid>", _external=True)
 
 user_list_schema = UserListSchema(many=True)
 

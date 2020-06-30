@@ -12,26 +12,13 @@ Blueprint is registered in Application Factory function.
 
 from flask import Blueprint, request, jsonify, make_response, url_for, current_app
 from marshmallow import ValidationError
-from appusers.models import Group, group_schema, group_list_schema, groups_filters_schema
+from appusers.models import group_schema, group_list_schema, groups_filters_schema
+from appusers.database import Group
+from appusers.utils import json_body
 
 
 # Create Groups enpoint Blueprint
 bp = Blueprint('groups', __name__, url_prefix='/groups')
-
-# Initialize some data
-admins = Group(
-    groupid=0,
-    groupname='admins',
-    description='Administrators'
-    )
-friends = Group(
-    groupid=1,
-    groupname='friends',
-    description='Friends and Family'
-)
-
-groups_list = {0: admins, 1: friends}
-groups_max_index = 1
 
 @bp.route('', methods=['GET'])
 def list_groups():
@@ -57,11 +44,12 @@ def list_groups():
         f'list_groups(): Validated filters are: {filters}'
         )
 
-    filtered_list = groups_list.values()
+    filtered_list = Group.get_list(filters)
     return jsonify(group_list_schema.dump(filtered_list))
 
 @bp.route('', methods=['POST'])
-def create_group():
+@json_body
+def create_group(data):
     """
     Create Group Resource
 
@@ -72,29 +60,20 @@ def create_group():
         Confirmation or Error Message
         'Location' Response Header
     """
-    global groups_max_index
-
-    if not request.is_json:
-        return make_response('Unsupported Media Type', 415)
-
-    try:
-        data = request.get_json()
-    except Exception as e:
-        return make_response('Bad request', 400)
-
     try:
         new_group_data = group_schema.load(data)
-    except ValidationError as e:
+        new_group =  Group(**new_group_data)
+    except Exception as e:
         current_app.logger.warning(
-            f'create_group() failed.\nValidationError: {e}'
+            f'create_group() failed.\nError: {e}'
             )
         return make_response('Bad request', 400)
 
-    groups_max_index = groups_max_index + 1
-    new_group_data['groupid'] = groups_max_index
-    groups_list[groups_max_index] = Group(**new_group_data)
     response = make_response('Created', 201)
-    response.headers['Location'] = url_for('groups.retrieve_group', groupid=groups_max_index)
+    response.headers['Location'] = url_for(
+        'groups.retrieve_group',
+        groupid=new_group.groupid
+        )
 
     return response
 
@@ -109,13 +88,15 @@ def retrieve_group(groupid):
     Returns:
         JSON Object with Group Resource Representation or Error Message
     """
-    if groupid in groups_list:
-        return jsonify(group_schema.dump(groups_list[groupid]))
+    group = Group.retrieve(groupid)
+    if u:
+        return jsonify(group_schema.dump(group))
     else:
-        return make_response('Not Found', 404)
+        return("Not Found", 404)
 
 @bp.route('/<int:groupid>', methods=['PUT'])
-def replace_group(groupid):
+@json_body
+def replace_group(groupid, data):
     """
     Replace Group Resource Representation
 
@@ -126,31 +107,24 @@ def replace_group(groupid):
     Returns:
         Confirmation or Error Message
     """
-    if groupid not in groups_list:
+    group = Group.retrieve(groupid)
+    if not group:
         return make_response('Not found', 404)
-
-    if not request.is_json:
-        return make_response('Unsupported Media Type', 415)
-
-    try:
-        data = request.get_json()
-    except Exception as e:
-        return make_response('Bad request', 400)
 
     try:
         new_group_data = group_schema.load(data)
-    except ValidationError as e:
+        group.update(**new_group_data)
+    except Exception as e:
         current_app.logger.warning(
-            f'replace_group(groupid={groupid}) failed.\nValidationError: {e}'
+            f'replace_group(groupid={groupid}) failed.\nUpdate error: {e}'
             )
         return make_response('Bad request', 400)
-
-    groups_list[groupid].update(**new_group_data)
 
     return make_response('OK', 200)
 
 @bp.route('/<int:groupid>', methods=['PATCH'])
-def update_group(groupid):
+@json_body
+def update_group(groupid, data):
     """
     Update Group Resource Representation
 
@@ -161,26 +135,18 @@ def update_group(groupid):
     Returns:
         Confirmation or Error Message
     """
-    if groupid not in groups_list:
+    group = Group.retrieve(groupid)
+    if not group:
         return make_response('Not found', 404)
-
-    if not request.is_json:
-        return make_response('Unsupported Media Type', 415)
-
-    try:
-        data = request.get_json()
-    except Exception as e:
-        return make_response('Bad request', 400)
 
     try:
         new_group_data = group_schema.load(data, partial=True)
-    except ValidationError as e:
+        group.update(**new_group_data)
+    except Exception as e:
         current_app.logger.warning(
-            f'update_group(groupid={groupid}) failed.\nValidationError: {e}'
+            f'replace_group(groupid={groupid}) failed.\nUpdate error: {e}'
             )
         return make_response('Bad request', 400)
-
-    groups_list[groupid].update(**new_group_data)
 
     return make_response('OK', 200)
 
@@ -195,9 +161,17 @@ def delete_group(groupid):
     Returns:
         Confirmation or Error Message
     """
-    if groupid in groups_list:
-        del(groups_list[groupid])
-        return make_response('OK', 200)
+    group = Group.retrieve(groupid)
+    if group:
+        try:
+            group.remove()
+        except Exception as e:
+            current_app.logger.warning(
+                f'delete_group(groupid={groupid}) failed.\nError: {e}'
+                )
+            make_response('Internal error', 500)
+        else:
+            return make_response('OK', 200)
     else:
         return make_response('Not found', 404)
 
