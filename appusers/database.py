@@ -15,7 +15,7 @@ class Group(db.Model):
     """Database Model of Group Resource"""
 
     groupid = db.Column(db.Integer, primary_key=True)
-    groupname = db.Column(db.String(20), unique=True, nullable=False) # zmien na maksymalna dlugosc z models.GroupSchema
+    groupname = db.Column(db.String(20), unique=True, nullable=False)
     description = db.Column(db.Text)
 
     def __init__(self, **kwargs):
@@ -55,11 +55,11 @@ class User(db.Model):
     """Database Model of User Resource"""
 
     userid = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(20), unique=True, nullable=False) # zmien na maksymalna dlugosc z models.UserSchema
-    firstname = db.Column(db.String(30), nullable=False) # zmien na maksymalna dlugosc z models.UserSchema
-    lastname = db.Column(db.String(30), nullable=False) # zmien na maksymalna dlugosc z models.UserSchema
+    username = db.Column(db.String(20), unique=True, nullable=False)
+    firstname = db.Column(db.String(30), nullable=False)
+    lastname = db.Column(db.String(30), nullable=False)
     email = db.Column(db.String(120))
-    phone = db.Column(db.String(20)) # zmien na maksymalna dlugosc z models.UserSchema
+    phone = db.Column(db.String(20))
 
     def __init__(self, **kwargs):
         """User Object constructor automatically inserts to Database"""
