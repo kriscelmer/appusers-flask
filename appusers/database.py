@@ -83,7 +83,7 @@ class User(db.Model):
     email = db.Column(db.String(120))
     phone = db.Column(db.String(20))
     # One-way relation to Group
-    groupid = db.Column(db.Integer, nullable=False)
+    groupid = db.Column(db.Integer)
 
     def __init__(self, **kwargs):
         """User Object constructor automatically inserts to Database"""
