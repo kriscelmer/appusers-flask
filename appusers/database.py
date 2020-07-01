@@ -70,7 +70,8 @@ class Group(db.Model):
         return query.all()
 
     def __repr__(self):
-        return f'<Group {self.groupname}>'
+        # Include 'groupid' in representation
+        return f'<Group {self.groupname}, groupid={self.groupid}>'
 
 class User(db.Model):
     """Database Model of User Resource"""
@@ -81,6 +82,8 @@ class User(db.Model):
     lastname = db.Column(db.String(30), nullable=False)
     email = db.Column(db.String(120))
     phone = db.Column(db.String(20))
+    # One-way relation to Group
+    groupid = db.Column(db.Integer, nullable=False)
 
     def __init__(self, **kwargs):
         """User Object constructor automatically inserts to Database"""
@@ -94,6 +97,7 @@ class User(db.Model):
             lastname=None,
             email=None,
             phone=None,
+            groupid=None,
             **kwargs):
         """Update User Object and commit to Database"""
         if username:
@@ -106,6 +110,9 @@ class User(db.Model):
             self.email = email
         if phone:
             self.phone = phone
+        # Update 'group_id' attribute
+        if groupid:
+            self.groupid = groupid
         db.session.commit()
 
     def remove(self):
@@ -136,6 +143,9 @@ class User(db.Model):
             query = query.filter(User.email == filters['email'])
         if 'phone' in filters:
             query = query.filter(User.phone == filters['phone'])
+        # Filter using 'group_id' attribute
+        if 'groupid' in filters:
+            query = query.filter(User.groupid == filters['groupid'])
         if 'sortBy' in filters:
             # query.order_by() must be called before offset() or limit()
             sort_by = []
@@ -154,4 +164,5 @@ class User(db.Model):
         return query.all()
 
     def __repr__(self):
-        return f'<User {self.username}>'
+        # Include 'groupid' in Object representation
+        return f'<User {self.username}, id={self.userid}, groupid={self.groupid}>'
