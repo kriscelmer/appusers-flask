@@ -13,6 +13,14 @@ from sqlalchemy.orm import load_only
 # Database object is initialized in Application Factory
 db = SQLAlchemy()
 
+# This table stores Group-User membership records
+members = db.Table('members',
+    db.Column('groupid', db.Integer, db.ForeignKey('group.groupid'),
+        primary_key=True),
+    db.Column('userid', db.Integer, db.ForeignKey('user.userid'),
+        primary_key=True)
+    )
+
 class Group(db.Model):
     """Database Model of Group Resource"""
 
@@ -20,7 +28,7 @@ class Group(db.Model):
     groupname = db.Column(db.String(20), unique=True, nullable=False)
     description = db.Column(db.Text)
     # 'users' value is a list of User objects
-    users = db.relationship('User', back_populates='group')
+    users = db.relationship('User', back_populates='groups', secondary=members)
 
     def __init__(self, **kwargs):
         """Group Object constructor automatically inserts to Database"""
@@ -41,6 +49,18 @@ class Group(db.Model):
         db.session.delete(self)
         db.session.commit()
 
+    def add_member(self, user):
+        """Add user to this Group members"""
+        if user:
+            self.users.append(user)
+            db.session.commit()
+
+    def remove_member(self, user):
+        """Remove user from Group members"""
+        if user and user in self.users:
+            self.users.remove(user)
+            db.session.commit()
+
     @classmethod
     def retrieve(cls, groupid):
         """Retrieve Group Object with groupid from Database"""
@@ -54,6 +74,8 @@ class Group(db.Model):
         if 'groupname' in filters:
             groupnames = filters['groupname'].split(',')
             query = query.filter(Group.groupname.in_(groupnames))
+        if 'member' in filters:
+            query = query.filter(Group.users.any(userid=filters['member']))
         if 'sortBy' in filters:
             # query.order_by() must be called before offset() or limit()
             sort_by = []
@@ -84,11 +106,8 @@ class User(db.Model):
     lastname = db.Column(db.String(30), nullable=False)
     email = db.Column(db.String(120))
     phone = db.Column(db.String(20))
-    # ForeignKey defines many Users to one Group binding,
-    # because it is declared in User Model
-    groupid = db.Column(db.Integer, db.ForeignKey(Group.groupid))
-    # 'group' points to Group object
-    group = db.relationship(Group, back_populates='users')
+    # 'groups' value is a list of Group objects
+    groups = db.relationship(Group, back_populates='users', secondary=members)
 
     def __init__(self, **kwargs):
         """User Object constructor automatically inserts to Database"""
@@ -102,7 +121,6 @@ class User(db.Model):
             lastname=None,
             email=None,
             phone=None,
-            groupid=None,
             **kwargs):
         """Update User Object and commit to Database"""
         if username:
@@ -115,15 +133,24 @@ class User(db.Model):
             self.email = email
         if phone:
             self.phone = phone
-        # Update 'group_id' attribute
-        if groupid:
-            self.groupid = groupid
         db.session.commit()
 
     def remove(self):
         """Permanently remove User Object from Database"""
         db.session.delete(self)
         db.session.commit()
+
+    def add_to_group(self, group):
+        """Add this User to group"""
+        if group:
+            self.groups.append(group)
+            db.session.commit()
+
+    def remove_from_group(self, group):
+        """Remove this User from group"""
+        if group and group in self.groups:
+            self.groups.remove(group)
+            db.session.commit()
 
     @classmethod
     def retrieve(cls, userid):
@@ -148,9 +175,6 @@ class User(db.Model):
             query = query.filter(User.email == filters['email'])
         if 'phone' in filters:
             query = query.filter(User.phone == filters['phone'])
-        # Filter using 'group_id' attribute
-        if 'groupid' in filters:
-            query = query.filter(User.groupid == filters['groupid'])
         if 'sortBy' in filters:
             # query.order_by() must be called before offset() or limit()
             sort_by = []
@@ -170,4 +194,4 @@ class User(db.Model):
 
     def __repr__(self):
         # Include 'groupid' in Object representation
-        return f'<User {self.username}, id={self.userid}, groupid={self.groupid}>'
+        return f'<User {self.username}, id={self.userid}>'
