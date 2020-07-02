@@ -19,6 +19,8 @@ class Group(db.Model):
     groupid = db.Column(db.Integer, primary_key=True)
     groupname = db.Column(db.String(20), unique=True, nullable=False)
     description = db.Column(db.Text)
+    # 'users' value is a list of User objects
+    users = db.relationship('User', back_populates='group')
 
     def __init__(self, **kwargs):
         """Group Object constructor automatically inserts to Database"""
@@ -82,8 +84,11 @@ class User(db.Model):
     lastname = db.Column(db.String(30), nullable=False)
     email = db.Column(db.String(120))
     phone = db.Column(db.String(20))
-    # One-way relation to Group
-    groupid = db.Column(db.Integer)
+    # ForeignKey defines many Users to one Group binding,
+    # because it is declared in User Model
+    groupid = db.Column(db.Integer, db.ForeignKey(Group.groupid))
+    # 'group' points to Group object
+    group = db.relationship(Group, back_populates='users')
 
     def __init__(self, **kwargs):
         """User Object constructor automatically inserts to Database"""
