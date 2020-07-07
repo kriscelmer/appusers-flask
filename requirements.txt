@@ -1,3 +1,5 @@
 Flask
 marshmallow-sqlalchemy
 flask-marshmallow
+Flask-Migrate
+Flask-Script
