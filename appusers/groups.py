@@ -36,7 +36,7 @@ def list_groups():
         filters = groups_filters_schema.load(request.args)
     except ValidationError as e:
         current_app.logger.warning(
-            f'list_group() Query String validation failed.\nValidationError: {e}'
+            f'list_groups() Query String validation failed.\nValidationError: {e}'
             )
         return make_response('Bad request', 400)
 
@@ -89,7 +89,7 @@ def retrieve_group(groupid):
         JSON Object with Group Resource Representation or Error Message
     """
     group = Group.retrieve(groupid)
-    if u:
+    if group:
         return jsonify(group_schema.dump(group))
     else:
         return("Not Found", 404)
