@@ -8,6 +8,7 @@ Group Resource is internally stored in Group class object.
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
 from sqlalchemy.orm import load_only
+from sqlalchemy.sql import expression
 
 
 # Database object is initialized in Application Factory
@@ -112,10 +113,10 @@ class User(db.Model):
     # 'groups' value is a list of Group objects
     groups = db.relationship(Group, back_populates='users', secondary=members)
     password = db.Column(db.String(120), server_default='')
-    locked = db.Column(db.Boolean, server_default=False)
-    failed_logins = db.Column(db.Integer, server_default=0)
+    locked = db.Column(db.Boolean, server_default=expression.false())
+    failed_logins = db.Column(db.Integer, server_default='0')
     last_failed_login = db.Column(db.DateTime())
-    admin = db.Column(db.Boolean, server_default=False)
+    admin = db.Column(db.Boolean, server_default=expression.false())
 
     def __init__(self, **kwargs):
         """User Object constructor automatically inserts to Database"""

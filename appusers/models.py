@@ -272,7 +272,7 @@ class SetPasswordBodySchema(Schema):
     confirmPassword = fields.Str(required=True)
 
     @validates_schema
-    def validate_passwords(self, data, *kwargs):
+    def validate_passwords(self, data, **kwargs):
         """Check if password and confirmPassword are equal"""
         if data['password'] != data['confirmPassword']:
             raise ValidationError('password and confirmPassword must be equal')
