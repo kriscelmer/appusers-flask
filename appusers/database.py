@@ -111,11 +111,11 @@ class User(db.Model):
     phone = db.Column(db.String(20))
     # 'groups' value is a list of Group objects
     groups = db.relationship(Group, back_populates='users', secondary=members)
-    password = db.Column(db.String(120), default='')
-    locked = db.Column(db.Boolean, default=False)
-    failed_logins = db.Column(db.Integer, default=0)
+    password = db.Column(db.String(120), server_default='')
+    locked = db.Column(db.Boolean, server_default=False)
+    failed_logins = db.Column(db.Integer, server_default=0)
     last_failed_login = db.Column(db.DateTime())
-    admin = db.Column(db.Boolean, default=False)
+    admin = db.Column(db.Boolean, server_default=False)
 
     def __init__(self, **kwargs):
         """User Object constructor automatically inserts to Database"""
