@@ -12,8 +12,8 @@ Blueprint is registered in Application Factory function.
 
 from flask import Blueprint, request, jsonify, make_response, url_for, current_app
 from marshmallow import ValidationError
-from appusers.models import group_schema, group_list_schema, groups_filters_schema, GroupListSchema
-from appusers.database import Group
+from appusers.models import group_schema, group_list_schema, groups_filters_schema, GroupListSchema, group_members_filters_schema, user_list_schema, UserListSchema
+from appusers.database import Group, User
 from appusers.utils import json_body
 
 
@@ -36,7 +36,7 @@ def list_groups():
         filters = groups_filters_schema.load(request.args)
     except ValidationError as e:
         current_app.logger.warning(
-            f'list_group() Query String validation failed.\nValidationError: {e}'
+            f'list_groups() Query String validation failed.\nValidationError: {e}'
             )
         return make_response('Bad request', 400)
 
@@ -90,7 +90,7 @@ def retrieve_group(groupid):
         JSON Object with Group Resource Representation or Error Message
     """
     group = Group.retrieve(groupid)
-    if u:
+    if group:
         return jsonify(group_schema.dump(group))
     else:
         return("Not Found", 404)
@@ -188,7 +188,28 @@ def list_group_members(groupid):
     Returns:
         JSON array of User Resource Representations or Error Message
     """
-    return "Retrieve Group members mock-up", 404
+    group = Group.retrieve(groupid)
+    if group == None:
+        current_app.logger.warning(
+            f'list_group_members() Group with id={groupid} not found'
+            )
+        return make_response('Group not found', 404)
+
+    try:
+        filters = group_members_filters_schema.load(request.args)
+    except ValidationError as e:
+        current_app.logger.warning(
+            f'list_group_members() Query String validation failed.\nValidationError: {e}'
+            )
+        return make_response('Bad request', 400)
+
+    filtered_list = group.list_members()
+    if 'return_fields' in filters:
+        return_fields = filters['return_fields'].split(',') + ['href']
+        users = UserListSchema(many=True, only=return_fields).dump(filtered_list)
+    else:
+        users = user_list_schema.dump(filtered_list)
+    return jsonify(users)
 
 @bp.route('/<int:groupid>/members/<int:userid>', methods=['PUT'])
 def add_user_to_group(groupid, userid):
@@ -202,7 +223,23 @@ def add_user_to_group(groupid, userid):
     Returns:
         Confirmation or Error Message
     """
-    return "Add User to Group mock-up", 200
+    group = Group.retrieve(groupid)
+    if group == None:
+        current_app.logger.warning(
+            f'add_user_to_group() Group with id={groupid} not found'
+            )
+        return make_response('Group or User not found', 404)
+    user = User.retrieve(userid)
+    if user == None:
+        current_app.logger.warning(
+            f'add_user_to_group() User with id={userid} not found'
+            )
+        return make_response('Group or User not found', 404)
+    if user in group.users:
+        return 'User already in the Group', 200
+    else:
+        group.add_member(user)
+        return 'User added to the Group', 201
 
 @bp.route('/<int:groupid>/members/<int:userid>', methods=['DELETE'])
 def delete_user_from_group(groupid, userid):
@@ -216,4 +253,17 @@ def delete_user_from_group(groupid, userid):
     Returns:
         Confirmation or Error Message
     """
-    return "Delete User from Group mock-up", 200
+    group = Group.retrieve(groupid)
+    if group == None:
+        current_app.logger.warning(
+            f'add_user_to_group() Group with id={groupid} not found'
+            )
+        return make_response('Group or User not found', 404)
+    user = User.retrieve(userid)
+    if user == None:
+        current_app.logger.warning(
+            f'add_user_to_group() User with id={userid} not found'
+            )
+        return make_response('Group or User not found', 404)
+    group.remove_member(user)
+    return 'User deleted from Group', 200

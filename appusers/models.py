@@ -247,3 +247,21 @@ class UsersQueryStringSchema(Schema):
         return True
 
 users_filters_schema = UsersQueryStringSchema()
+
+class GroupMembersQueryStringSchema(Schema):
+    """Data Model of Retrieve Group Members operation Query String parameters"""
+    return_fields = fields.Str(data_key='fields')
+
+    @validates('return_fields')
+    def validate_return_fields(self, data, **kwargs):
+        """Validate fields Query String parameter value"""
+        fields_list = set(['userid', 'username', 'firstname',
+                'lastname', 'email', 'phone'])
+        return_fields = set(data.split(','))
+        if return_fields.difference(fields_list):
+            raise ValidationError(
+                f'Unexpected names in Query String "field": {return_fields.difference(fields_list)}'
+                )
+        return True
+
+group_members_filters_schema = GroupMembersQueryStringSchema()

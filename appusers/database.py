@@ -61,6 +61,9 @@ class Group(db.Model):
             self.users.remove(user)
             db.session.commit()
 
+    def list_members(self):
+        return User.query.filter(User.groups.any(groupid=self.groupid)).all()
+
     @classmethod
     def retrieve(cls, groupid):
         """Retrieve Group Object with groupid from Database"""
