@@ -12,7 +12,7 @@ Blueprint is registered in Application Factory function.
 
 from flask import Blueprint, request, jsonify, make_response, url_for, current_app
 from marshmallow import ValidationError
-from appusers.models import user_schema, user_list_schema, users_filters_schema, UserListSchema
+from appusers.models import user_schema, user_list_schema, users_filters_schema, UserListSchema, set_password_body_schema
 from appusers.database import User
 from appusers.utils import json_body
 
@@ -177,7 +177,8 @@ def delete_user(userid):
         return make_response('Not found', 404)
 
 @bp.route('/<int:userid>/set-password', methods=['POST'])
-def set_password(userid):
+@json_body
+def set_password(userid, data):
     """
     Set new password for User account
 
@@ -188,7 +189,20 @@ def set_password(userid):
     Returns:
         Confirmation or Error Message
     """
-    return "Set new password for User account mock-up", 200
+    user = User.retrieve(userid)
+    if not user:
+        return('Not Found', 404)
+
+    try:
+        passwords = set_password_body_schema.load(data)
+        user.set_password(passwords['password'])
+    except Exception as e:
+        current_app.logger.warning(
+            f'set_password(userid={userid}) failed.\nError: {e}'
+            )
+        return make_response('Bad Request', 400)
+
+    return('OK', 200)
 
 @bp.route('/<int:userid>/lock', methods=['GET'])
 def read_lock_status(userid):
@@ -201,7 +215,11 @@ def read_lock_status(userid):
     Returns:
         JSON Object with lock status or Error Message
     """
-    return "Read User account lock status mock-up", 200
+    user = User.retrieve(userid)
+    if not user:
+        return('Not Found', 404)
+
+    return jsonify({'locked': user.get_lock()})
 
 @bp.route('/<int:userid>/lock/set', methods=['POST'])
 def set_lock(userid):
@@ -214,7 +232,12 @@ def set_lock(userid):
     Returns:
         Confirmation or Error Message
     """
-    return "Set User lock status mock-up", 200
+    user = User.retrieve(userid)
+    if not user:
+        return('Not Found', 404)
+
+    user.set_lock()
+    return('OK', 200)
 
 @bp.route('/<int:userid>/lock/unset', methods=['POST'])
 def clear_lock(userid):
@@ -227,7 +250,12 @@ def clear_lock(userid):
     Returns:
         Confirmation or Error Message
     """
-    return "Clear User lock status mock-up", 200
+    user = User.retrieve(userid)
+    if not user:
+        return('Not Found', 404)
+
+    user.unlock()
+    return('OK', 200)
 
 @bp.route('/<int:userid>/admin', methods=['GET'])
 def read_admin_status(userid):
@@ -240,7 +268,11 @@ def read_admin_status(userid):
     Returns:
         JSON Object with admin status or Error Message
     """
-    return "Read User account admin privilege status mock-up", 200
+    user = User.retrieve(userid)
+    if not user:
+        return('Not Found', 404)
+
+    return jsonify({'isAdmin': user.get_admin()})
 
 @bp.route('/<int:userid>/admin/grant', methods=['POST'])
 def grant_admin_status(userid):
@@ -253,7 +285,12 @@ def grant_admin_status(userid):
     Returns:
         Confirmation or Error Message
     """
-    return "Grant admin privilege to User mock-up", 200
+    user = User.retrieve(userid)
+    if not user:
+        return('Not Found', 404)
+
+    user.grant_admin()
+    return('OK', 200)
 
 @bp.route('/<int:userid>/admin/revoke', methods=['POST'])
 def remoke_admin_status(userid):
@@ -266,4 +303,9 @@ def remoke_admin_status(userid):
     Returns:
         Confirmation or Error Message
     """
-    return "Revoke admin privilege from User mock-up", 200
+    user = User.retrieve(userid)
+    if not user:
+        return('Not Found', 404)
+
+    user.revoke_admin()
+    return('OK', 200)

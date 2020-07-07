@@ -111,6 +111,11 @@ class User(db.Model):
     phone = db.Column(db.String(20))
     # 'groups' value is a list of Group objects
     groups = db.relationship(Group, back_populates='users', secondary=members)
+    password = db.Column(db.String(120), default='')
+    locked = db.Column(db.Boolean, default=False)
+    failed_logins = db.Column(db.Integer, default=0)
+    last_failed_login = db.Column(db.DateTime())
+    admin = db.Column(db.Boolean, default=False)
 
     def __init__(self, **kwargs):
         """User Object constructor automatically inserts to Database"""
@@ -154,6 +159,39 @@ class User(db.Model):
         if group and group in self.groups:
             self.groups.remove(group)
             db.session.commit()
+
+    def set_password(self, password):
+        """Set new password for this User"""
+        self.password = password
+        db.session.commit()
+
+    def get_lock(self):
+        """Return lock status of this User"""
+        return self.locked
+
+    def set_lock(self):
+        """Lock this User"""
+        self.locked = True
+        db.session.commit()
+
+    def unlock(self):
+        """Unlock this User"""
+        self.locked = False
+        db.session.commit()
+
+    def get_admin(self):
+        """Return admin status of this User"""
+        return self.admin
+
+    def grant_admin(self):
+        """Grant admin status to this User"""
+        self.admin = True
+        db.session.commit()
+
+    def revoke_admin(self):
+        """Revoke admin status of this User"""
+        self.admin = False
+        db.session.commit()
 
     @classmethod
     def retrieve(cls, userid):

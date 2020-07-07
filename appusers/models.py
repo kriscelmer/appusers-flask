@@ -24,7 +24,7 @@ List users Collection operation Query String parameters.
 from copy import copy
 from string import ascii_letters, digits
 from flask_marshmallow import Marshmallow
-from marshmallow import Schema, fields, pre_load, post_dump, validate, validates, ValidationError
+from marshmallow import Schema, fields, pre_load, post_dump, validate, validates, validates_schema, ValidationError
 
 
 # Marshmallow object is initialized in Application Factory
@@ -265,3 +265,17 @@ class GroupMembersQueryStringSchema(Schema):
         return True
 
 group_members_filters_schema = GroupMembersQueryStringSchema()
+
+class SetPasswordBodySchema(Schema):
+    """Data Model for Set new password for User account operation"""
+    password = fields.Str(required=True)
+    confirmPassword = fields.Str(required=True)
+
+    @validates_schema
+    def validate_passwords(self, data, *kwargs):
+        """Check if password and confirmPassword are equal"""
+        if data['password'] != data['confirmPassword']:
+            raise ValidationError('password and confirmPassword must be equal')
+        return True
+
+set_password_body_schema = SetPasswordBodySchema()
