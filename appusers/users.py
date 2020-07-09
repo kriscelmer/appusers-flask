@@ -90,7 +90,7 @@ def retrieve_user(userid):
         JSON Object with User Resource Representation or Error Message
     """
     user = User.retrieve(userid)
-    if u:
+    if user:
         return jsonify(user_schema.dump(user))
     else:
         return("Not Found", 404)
