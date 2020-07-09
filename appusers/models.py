@@ -3,14 +3,19 @@
 This module declares Marshmallow Data Models of User and Group Resources,
 as well as Query String Parameters.
 
+ma, an instance of Marshmallow from Flask-Marshmallow is declared here and
+is initialized in Application Factory function.
+
 group_schema object provides serialization (dump), deserialization (load)
 and validation of Group Resource.
+
 group_list_schema object provides serialization of arrays
 of Group objects to Data Model of List Groups Collection operation
 Response Body.
 
 user_schema object provides serialization, deserialization and validation
 of User Resource.
+
 user_list_schema object provides serialization of arrays
 of User objects to Data Model of List Users Collection operation
 Response Body.
@@ -20,11 +25,21 @@ List Groups Collection operation Query String parameters.
 
 users_filters_schema object provides deserialization and validation of
 List users Collection operation Query String parameters.
+
+group_members_filters_schema object provides deserialization and validation of
+Retrieve Group Members operation Query String parameters.
+
+set_password_body_schema object provides deserialization and
+validation of Set new password for User account operation Request body.
+
+login_body_schema object provides deserialization and
+validation of Login operation Request body.
 """
 from copy import copy
 from string import ascii_letters, digits
 from flask_marshmallow import Marshmallow
-from marshmallow import Schema, fields, pre_load, post_dump, validate, validates, validates_schema, ValidationError
+from marshmallow import (Schema, fields, pre_load, post_dump, validate,
+    validates, validates_schema, ValidationError)
 
 
 # Marshmallow object is initialized in Application Factory
@@ -279,3 +294,11 @@ class SetPasswordBodySchema(Schema):
         return True
 
 set_password_body_schema = SetPasswordBodySchema()
+
+class LoginBodySchema(Schema):
+    """Data Model for Login operation Request body"""
+    username = fields.Str(required=True,
+        validate=validate.Regexp("^[A-Za-z]\w*$"))
+    password = fields.Str(required=True)
+
+login_body_schema = LoginBodySchema()

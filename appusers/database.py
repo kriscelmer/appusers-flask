@@ -4,7 +4,18 @@ This module declares Database Models of User and Group Resources.
 
 User Resource is internally stored in User class object.
 Group Resource is internally stored in Group class object.
+
+db, an instance of SQLAlchemy from Flask-SQLAlchemy is declared here and
+is initialized in Application Factory function.
+db uses following Application Config variables declared in Application Factory:
+
+- SQLALCHEMY_DATABASE_URI - Database URI used for connection
+- SQLALCHEMY_TRACK_MODIFICATIONS - set acording to Flask-SQLAlchemy documentation
+
+Check all Flask-SQLAlchemy configration options at:
+    https://flask-sqlalchemy.palletsprojects.com/en/2.x/config/
 """
+from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
 from sqlalchemy.orm import load_only
@@ -171,13 +182,16 @@ class User(db.Model):
         return self.locked
 
     def set_lock(self):
-        """Lock this User"""
+        """Lock this User and record datetime of lock operation"""
         self.locked = True
+        self.last_failed_login = datetime.now() # consider datetime.utcnow()
         db.session.commit()
 
     def unlock(self):
-        """Unlock this User"""
+        """Unlock this User and clear off failed login records"""
         self.locked = False
+        self.failed_logins = 0
+        self.last_failed_login = None
         db.session.commit()
 
     def get_admin(self):

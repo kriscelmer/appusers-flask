@@ -11,16 +11,20 @@ Blueprint is registered in Application Factory function.
 """
 
 from flask import Blueprint, request, jsonify, make_response, url_for, current_app
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
-from appusers.models import group_schema, group_list_schema, groups_filters_schema, GroupListSchema, group_members_filters_schema, user_list_schema, UserListSchema
+from appusers.models import (group_schema, group_list_schema,
+    groups_filters_schema, GroupListSchema, group_members_filters_schema,
+    user_list_schema, UserListSchema)
 from appusers.database import Group, User
-from appusers.utils import json_body
+from appusers.utils import json_body, api_key_required, admin_required
 
 
 # Create Groups enpoint Blueprint
 bp = Blueprint('groups', __name__, url_prefix='/groups')
 
 @bp.route('', methods=['GET'])
+@api_key_required
 def list_groups():
     """
     List and filter Groups Collection
@@ -28,6 +32,7 @@ def list_groups():
     Args:
         request.args - Query String parameters: filtering, sorting
             and pagination
+        X-API-Key in request.headers
 
     Returns:
         JSON array of Group Resource Representations or Error Message
@@ -49,42 +54,48 @@ def list_groups():
     return jsonify(groups)
 
 @bp.route('', methods=['POST'])
-@json_body
+@jwt_required
+@admin_required
+@json_body(schema=group_schema)
 def create_group(data):
     """
     Create Group Resource
 
     Args:
-        request.body - JSON formatted Group Resource attributes
+        data - dictionary with all Group Resource attributes, loaded from
+            Request body JSON and validated with models.group_schema
+        JWT Baerer Authorization in request.headers - admin privilege required
 
     Returns:
         Confirmation or Error Message
         'Location' Response Header
     """
-    try:
-        new_group_data = group_schema.load(data)
-        new_group =  Group(**new_group_data)
-    except Exception as e:
+    if Group.get_list({'groupname': data['groupname']}):
         current_app.logger.warning(
-            f'create_group() failed.\nError: {e}'
+            f'create_group() failed. Groupname={data["groupname"]} already exists'
             )
         return make_response('Bad request', 400)
+
+    new_group =  Group(**data)
 
     response = make_response('Created', 201)
     response.headers['Location'] = url_for(
         'groups.retrieve_group',
-        groupid=new_group.groupid
+        groupid=new_group.groupid,
+        _external=True
         )
 
     return response
 
 @bp.route('/<int:groupid>', methods=['GET'])
+@api_key_required
 def retrieve_group(groupid):
     """
     Retrieve Group Resource Representation
 
     Args:
         groupid: Path Parameter - Unique ID of Group Resource (int)
+        X-API-Key in request.headers
 
     Returns:
         JSON Object with Group Resource Representation or Error Message
@@ -96,14 +107,18 @@ def retrieve_group(groupid):
         return("Not Found", 404)
 
 @bp.route('/<int:groupid>', methods=['PUT'])
-@json_body
+@jwt_required
+@admin_required
+@json_body(schema=group_schema)
 def replace_group(groupid, data):
     """
     Replace Group Resource Representation
 
     Args:
         groupid: Path Parameter - Unique ID of Group Resource (int)
-        request.body - JSON formatted Group Resource attributes
+        data - dictionary with all Group Resource attributes, loaded from
+            Request body JSON and validated with models.group_schema
+        JWT Baerer Authorization in request.headers - admin privilege required
 
     Returns:
         Confirmation or Error Message
@@ -112,26 +127,29 @@ def replace_group(groupid, data):
     if not group:
         return make_response('Not found', 404)
 
-    try:
-        new_group_data = group_schema.load(data)
-        group.update(**new_group_data)
-    except Exception as e:
+    if Group.get_list({'groupname': data['groupname']}):
         current_app.logger.warning(
-            f'replace_group(groupid={groupid}) failed.\nUpdate error: {e}'
+            f'create_group() failed. Groupname={data["groupname"]} already exists'
             )
         return make_response('Bad request', 400)
+
+    group.update(**data)
 
     return make_response('OK', 200)
 
 @bp.route('/<int:groupid>', methods=['PATCH'])
-@json_body
+@jwt_required
+@admin_required
+@json_body(schema=group_schema, partial=True)
 def update_group(groupid, data):
     """
     Update Group Resource Representation
 
     Args:
         groupid: Path Parameter - Unique ID of Group Resource (int)
-        request.body - JSON formatted Group Resource attributes
+        data - dictionary with partial Group Resource attributes, loaded from
+            Request body JSON and validated with models.group_schema
+        JWT Baerer Authorization in request.headers - admin privilege required
 
     Returns:
         Confirmation or Error Message
@@ -140,24 +158,26 @@ def update_group(groupid, data):
     if not group:
         return make_response('Not found', 404)
 
-    try:
-        new_group_data = group_schema.load(data, partial=True)
-        group.update(**new_group_data)
-    except Exception as e:
+    if 'groupname' in data and Group.get_list({'groupname': data['groupname']}):
         current_app.logger.warning(
-            f'replace_group(groupid={groupid}) failed.\nUpdate error: {e}'
+            f'create_group() failed. Groupname={data["groupname"]} already exists'
             )
         return make_response('Bad request', 400)
+
+    group.update(**data)
 
     return make_response('OK', 200)
 
 @bp.route('/<int:groupid>', methods=['DELETE'])
+@jwt_required
+@admin_required
 def delete_group(groupid):
     """
     Delete Group Resource
 
     Args:
         groupid: Path Parameter - Unique ID of Group Resource (int)
+        JWT Baerer Authorization in request.headers - admin privilege required
 
     Returns:
         Confirmation or Error Message
@@ -177,6 +197,7 @@ def delete_group(groupid):
         return make_response('Not found', 404)
 
 @bp.route('/<int:groupid>/members', methods=['GET'])
+@api_key_required
 def list_group_members(groupid):
     """
     Retrieve Group members
@@ -184,6 +205,7 @@ def list_group_members(groupid):
     Args:
         groupid: Path Parameter - Unique ID of Group Resource (int)
         request.args - Query String parameters: fields
+        X-API-Key in request.headers
 
     Returns:
         JSON array of User Resource Representations or Error Message
@@ -212,6 +234,8 @@ def list_group_members(groupid):
     return jsonify(users)
 
 @bp.route('/<int:groupid>/members/<int:userid>', methods=['PUT'])
+@jwt_required
+@admin_required
 def add_user_to_group(groupid, userid):
     """
     Add User to Group
@@ -219,6 +243,7 @@ def add_user_to_group(groupid, userid):
     Args:
         groupid: Path Parameter - Unique ID of Group Resource (int)
         userid: Path Parameter - Unique ID of User Resource (int)
+        JWT Baerer Authorization in request.headers - admin privilege required
 
     Returns:
         Confirmation or Error Message
@@ -242,6 +267,8 @@ def add_user_to_group(groupid, userid):
         return 'User added to the Group', 201
 
 @bp.route('/<int:groupid>/members/<int:userid>', methods=['DELETE'])
+@jwt_required
+@admin_required
 def delete_user_from_group(groupid, userid):
     """
     Delete User from Group
@@ -249,6 +276,7 @@ def delete_user_from_group(groupid, userid):
     Args:
         groupid: Path Parameter - Unique ID of Group Resource (int)
         userid: Path Parameter - Unique ID of User Resource (int)
+        JWT Baerer Authorization in request.headers - admin privilege required
 
     Returns:
         Confirmation or Error Message

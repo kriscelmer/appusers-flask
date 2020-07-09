@@ -3,3 +3,4 @@ marshmallow-sqlalchemy
 flask-marshmallow
 Flask-Migrate
 Flask-Script
+Flask-JWT-Extended
