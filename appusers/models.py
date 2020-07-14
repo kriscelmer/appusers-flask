@@ -34,12 +34,15 @@ validation of Set new password for User account operation Request body.
 
 login_body_schema object provides deserialization and
 validation of Login operation Request body.
+
+config_variables_schema object provides deserialization and
+validation of Applicaition Configuration variables.
 """
 from copy import copy
 from string import ascii_letters, digits
 from flask_marshmallow import Marshmallow
 from marshmallow import (Schema, fields, pre_load, post_dump, validate,
-    validates, validates_schema, ValidationError)
+    validates, validates_schema, ValidationError, EXCLUDE)
 
 
 # Marshmallow object is initialized in Application Factory
@@ -302,3 +305,25 @@ class LoginBodySchema(Schema):
     password = fields.Str(required=True)
 
 login_body_schema = LoginBodySchema()
+
+class ConfigVariablesSchema(Schema):
+    """Data Model for Application Configuration Environment Variables"""
+    class Meta:
+        unknown = EXCLUDE
+    DEBUG = fields.Boolean(data_key='APPUSERS_DEBUG')
+    ENV = fields.Str(data_key='APPUSERS_ENV')
+    SERVER_NAME = fields.Str(data_key='APPUSERS_SERVER_NAME')
+    APPLICATION_ROOT = fields.Str(data_key='APPUSERS_APPLICATION_ROOT')
+    SQLALCHEMY_DATABASE_URI = fields.Str(data_key='APPUSERS_DATABASE_URI')
+    API_KEY = fields.Str(data_key='APPUSERS_API_KEY')
+    JWT_SECRET_KEY = fields.Str(data_key='APPUSERS_SECRET_KEY')
+    JWT_ACCESS_TOKEN_EXPIRES = fields.TimeDelta(precision='seconds',
+        data_key='APPUSERS_ACCESS_TOKEN_EXPIRES')
+    MAX_FAILED_LOGIN_ATTEMPTS = fields.Integer(
+        validate=validate.Range(min=1,
+            error='Max failed login attempts must be greater or equal {min}, is {input}'),
+        data_key='APPUSERS_MAX_FAILED_LOGIN_ATTEMPTS')
+    LOCK_TIMEOUT = fields.TimeDelta(precision='seconds',
+        data_key='APPUSERS_LOCK_TIMEOUT')
+
+config_variables_schema = ConfigVariablesSchema()
