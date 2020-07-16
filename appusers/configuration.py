@@ -134,7 +134,8 @@ def configure(app):
         metavar='INT', help='Account lock timeout in seconds',
         dest='APPUSERS_LOCK_TIMEOUT')
 
-    parsed_args = vars(parser.parse_args()) # convert Namespace to dict
+    parsed_args, unknown = parser.parse_known_args()
+    parsed_args = vars(parsed_args) # convert Namespace to dict
     cl_args = {k:v for k,v in parsed_args.items() if v is not None} # skip None items
 
     try:
