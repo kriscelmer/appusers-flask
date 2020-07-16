@@ -25,18 +25,18 @@ def configure(app):
     app.config['ENV'] = 'development'
 
     # SERVER_NAME config variable required for hypermedia links generation
-    SERVER_NAME = 'localhost:5000'
+    app.config['SERVER_NAME'] = 'localhost:5000'
 
     # SQLAlchemy configuration for development, uses SQLite3 local file DB
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///appusers.sqlite3'
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///appusers.sqlite3'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # X-API-Key value for development
-    API_KEY = 'appusers' # change this!
+    app.config['API_KEY'] = 'appusers' # change this!
 
     # Flask-JWT-Extended configuration for development
-    JWT_SECRET_KEY = 'super-secret' # change this!
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(
+    app.config['JWT_SECRET_KEY'] = 'super-secret' # change this!
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(
         days=1,
         hours=0,
         minutes=0,
@@ -44,8 +44,8 @@ def configure(app):
         )
 
     # Login parameters related to User account lock for development
-    MAX_FAILED_LOGIN_ATTEMPTS = 5
-    LOCK_TIMEOUT = timedelta(
+    app.config['MAX_FAILED_LOGIN_ATTEMPTS'] = 5
+    app.config['LOCK_TIMEOUT'] = timedelta(
         days=0,
         hours=0,
         minutes=5,
@@ -58,8 +58,8 @@ def configure(app):
         Relative path is resolved in Application root folder
     """
 
-    if 'APPUSERS_PY_CONFIG' in os.environ:
-        py_file_name = os.environ['APPUSERS_PY_CONFIG']
+    if 'APPUSERS_CONFIG' in os.environ:
+        py_file_name = os.environ['APPUSERS_CONFIG']
     else:
         # file name is relative to directory holding __init__.py module
         py_file_name = 'development_config.py'
