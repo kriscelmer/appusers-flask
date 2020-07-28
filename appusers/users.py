@@ -75,6 +75,10 @@ def create_user(data):
             )
         return make_response('Bad request', 400)
 
+    # Ignore 'userid' if present in request data
+#    if 'userid' in data:
+#        del(data['userid'])
+#
     new_user = User(**data)
 
     response = make_response('Created', 201)

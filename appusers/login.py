@@ -109,3 +109,10 @@ def current_user_not_found(identity):
         f'User with JWT identity={identity} not found in Database!'
         )
     return make_response('Unathorized', 401)
+
+#@jwt.invalid_token_loader
+#def invalid_token_access(msg):
+#    """Return 401 error Response due to Invalid Token used"""
+#    # Flask-JWT-Extended returns 422 by default when Invalid Token used
+#    current_app.logger.warning(f'Invalid JWT token sent: {msg}')
+#    return make_response('Unauthorized', 401)
