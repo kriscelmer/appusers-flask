@@ -1,5 +1,5 @@
 from flask import Flask
-from appusers import users, groups, login, models
+from appusers import users, groups, login, schema
 
 
 def create_app():
@@ -18,6 +18,6 @@ def create_app():
         app.register_blueprint(login.bp)
 
         # Initialize Marshmallow object from models
-        models.ma.init_app(app)
+        schema.ma.init_app(app)
 
         return app

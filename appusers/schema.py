@@ -1,19 +1,14 @@
-"""Data Models module
+"""Data Schema module
 
-This module declares Data Models of User and Group Resources.
-
-User Resource is internally stored in User class object.
-Group Resource is internally stored in Group class object.
-
-group_schema object provides serialization (dump) and deserialization (load)
-of Group Resource.
-group_list_schema object provides serialization of arrays
+This module declares Data Schema of User and Group Resources.
+group_schema object provides serialization (dump) of Group Resource from Python
+object to dict.
+group_list_schema object provides serialization of lists
 of Group objects to Data Model of List Groups Collection operation
 Response Body.
 
-user_schema object provides serialization and deserialization
-of User Resource.
-user_list_schema object provides serialization of arrays
+user_schema object provides serialization of User Resource.
+user_list_schema object provides serialization of lists
 of User objects to Data Model of List Users Collection operation
 Response Body.
 """
@@ -24,22 +19,6 @@ from marshmallow import Schema, fields, pre_load, post_dump, validate
 
 # Marshmallow object is initialized in Application Factory
 ma = Marshmallow()
-
-class Group:
-    """Internal representation of Group Resource"""
-    def __init__(self, groupid, groupname, description):
-        self.groupid = groupid
-        self.groupname = groupname
-        self.description = description
-
-    def update(self, groupname=None, description=None, **kwargs):
-        if groupname:
-            self.groupname = groupname
-        if description:
-            self.description = description
-
-    def __repr__(self):
-        return f'<Group {self.groupname}>'
 
 class GroupSchema(Schema):
     """Data Model (schema) of external representation of Group Resource"""
@@ -54,37 +33,6 @@ class GroupListSchema(GroupSchema):
     href = ma.URLFor("groups.retrieve_group", groupid="<groupid>")
 
 group_list_schema = GroupListSchema(many=True)
-
-class User:
-    """Internal representation of User Resource"""
-    def __init__(self, userid, username, firstname, lastname, email, phone):
-        self.userid = userid
-        self.username = username
-        self.firstname = firstname
-        self.lastname = lastname
-        self.email = email
-        self.phone = phone
-
-    def update(self,
-            username=None,
-            firstname=None,
-            lastname=None,
-            email=None,
-            phone=None,
-            **kwargs):
-        if username:
-            self.username = username
-        if firstname:
-            self.firstname = firstname
-        if lastname:
-            self.lastname = lastname
-        if email:
-            self.email = email
-        if phone:
-            self.phone = phone
-
-    def __repr__(self):
-        return f'<User {self.username}>'
 
 class UserSchema(Schema):
     """Data Model (schema) of external representation of User Resource"""
