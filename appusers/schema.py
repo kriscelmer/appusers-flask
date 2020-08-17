@@ -1,6 +1,6 @@
-"""Data Models module
+"""Data Schema module
 
-This module declares Data Models of User and Group Resources.
+This module declares Data Schema of User and Group Resources.
 
 User Resource is internally stored in User class object.
 Group Resource is internally stored in Group class object.
@@ -25,25 +25,9 @@ from marshmallow import Schema, fields, pre_load, post_dump, validate
 # Marshmallow object is initialized in Application Factory
 ma = Marshmallow()
 
-class Group:
-    """Internal representation of Group Resource"""
-    def __init__(self, groupid, groupname, description):
-        self.groupid = groupid
-        self.groupname = groupname
-        self.description = description
-
-    def update(self, groupname=None, description=None, **kwargs):
-        if groupname:
-            self.groupname = groupname
-        if description:
-            self.description = description
-
-    def __repr__(self):
-        return f'<Group {self.groupname}>'
-
 class GroupSchema(Schema):
     """Data Model (schema) of external representation of Group Resource"""
-    groupid = fields.Integer()
+    groupid = fields.Integer(dump_only=True)
     groupname = fields.Str(
         required=True,
         validate=[
@@ -53,6 +37,14 @@ class GroupSchema(Schema):
         )
     description = fields.Str(required=True)
 
+    @pre_load
+    def ignore_groupid(self, load_data, **kwargs):
+        """Remove groupid from Request data, if present"""
+        new_data = copy(load_data)
+        if 'groupid' in new_data:
+            del(new_data['groupid'])
+        return new_data
+
 group_schema = GroupSchema()
 
 class GroupListSchema(GroupSchema):
@@ -61,40 +53,9 @@ class GroupListSchema(GroupSchema):
 
 group_list_schema = GroupListSchema(many=True)
 
-class User:
-    """Internal representation of User Resource"""
-    def __init__(self, userid, username, firstname, lastname, email, phone):
-        self.userid = userid
-        self.username = username
-        self.firstname = firstname
-        self.lastname = lastname
-        self.email = email
-        self.phone = phone
-
-    def update(self,
-            username=None,
-            firstname=None,
-            lastname=None,
-            email=None,
-            phone=None,
-            **kwargs):
-        if username:
-            self.username = username
-        if firstname:
-            self.firstname = firstname
-        if lastname:
-            self.lastname = lastname
-        if email:
-            self.email = email
-        if phone:
-            self.phone = phone
-
-    def __repr__(self):
-        return f'<User {self.username}>'
-
 class UserSchema(Schema):
     """Data Model (schema) of external representation of User Resource"""
-    userid = fields.Integer()
+    userid = fields.Integer(dump_only=True)
     username = fields.Str(
         required=True,
         validate=[
@@ -141,7 +102,7 @@ class UserSchema(Schema):
 
     @pre_load
     def to_user_dict(self, load_data, **kwargs):
-        """Covert contactInfo to email and phone fields"""
+        """Covert contactInfo to email and phone fields and ignore userid"""
         new_data = copy(load_data)
         # Handle partial User Data Model in Update User Resource operation
         if 'contactInfo' in new_data:
@@ -150,6 +111,9 @@ class UserSchema(Schema):
             if 'phone' in new_data['contactInfo']:
                 new_data['phone'] = new_data['contactInfo']['phone']
             del(new_data['contactInfo'])
+        # Ignore 'userid' if present in Request data
+        if 'userid' in new_data:
+            del(new_data['userid'])
         return new_data
 
 user_schema = UserSchema()

@@ -12,26 +12,12 @@ Blueprint is registered in Application Factory function.
 
 from flask import Blueprint, request, jsonify, make_response, url_for, current_app
 from marshmallow import ValidationError
-from appusers.models import Group, group_schema, group_list_schema
+from appusers.database import Group
+from appusers.schema import group_schema, group_list_schema
 
 
 # Create Groups enpoint Blueprint
 bp = Blueprint('groups', __name__, url_prefix='/groups')
-
-# Initialize some data
-admins = Group(
-    groupid=0,
-    groupname='admins',
-    description='Administrators'
-    )
-friends = Group(
-    groupid=1,
-    groupname='friends',
-    description='Friends and Family'
-)
-
-groups_list = {0: admins, 1: friends}
-groups_max_index = 1
 
 @bp.route('', methods=['GET'])
 def list_groups():
@@ -45,8 +31,8 @@ def list_groups():
     Returns:
         JSON array of Group Resource Representations or Error Message
     """
-    filtered_list = groups_list.values()
-    return jsonify(group_list_schema.dump(filtered_list))
+    list = Group.get_list({})
+    return jsonify(group_list_schema.dump(list))
 
 @bp.route('', methods=['POST'])
 def create_group():
@@ -60,14 +46,13 @@ def create_group():
         Confirmation or Error Message
         'Location' Response Header
     """
-    global groups_max_index
-
     if not request.is_json:
         return make_response('Unsupported Media Type', 415)
 
     try:
         data = request.get_json()
     except Exception as e:
+        print(e)
         return make_response('Bad request', 400)
 
     try:
@@ -78,11 +63,10 @@ def create_group():
             )
         return make_response('Bad request', 400)
 
-    groups_max_index = groups_max_index + 1
-    new_group_data['groupid'] = groups_max_index
-    groups_list[groups_max_index] = Group(**new_group_data)
+    new_group = Group(**new_group_data)
     response = make_response('Created', 201)
-    response.headers['Location'] = url_for('groups.retrieve_group', groupid=groups_max_index)
+    response.headers['Location'] = url_for('groups.retrieve_group',
+        groupid=new_group.groupid)
 
     return response
 
@@ -97,8 +81,9 @@ def retrieve_group(groupid):
     Returns:
         JSON Object with Group Resource Representation or Error Message
     """
-    if groupid in groups_list:
-        return jsonify(group_schema.dump(groups_list[groupid]))
+    group = Group.retrieve(groupid)
+    if group:
+        return jsonify(group_schema.dump(group))
     else:
         return make_response('Not Found', 404)
 
@@ -114,7 +99,8 @@ def replace_group(groupid):
     Returns:
         Confirmation or Error Message
     """
-    if groupid not in groups_list:
+    group = Group.retrieve(groupid)
+    if not group:
         return make_response('Not found', 404)
 
     if not request.is_json:
@@ -133,7 +119,7 @@ def replace_group(groupid):
             )
         return make_response('Bad request', 400)
 
-    groups_list[groupid].update(**new_group_data)
+    group.update(**new_group_data)
 
     return make_response('OK', 200)
 
@@ -149,7 +135,8 @@ def update_group(groupid):
     Returns:
         Confirmation or Error Message
     """
-    if groupid not in groups_list:
+    group = Group.retrieve(groupid)
+    if not group:
         return make_response('Not found', 404)
 
     if not request.is_json:
@@ -168,7 +155,7 @@ def update_group(groupid):
             )
         return make_response('Bad request', 400)
 
-    groups_list[groupid].update(**new_group_data)
+    group.update(**new_group_data)
 
     return make_response('OK', 200)
 
@@ -183,8 +170,9 @@ def delete_group(groupid):
     Returns:
         Confirmation or Error Message
     """
-    if groupid in groups_list:
-        del(groups_list[groupid])
+    group = Group.retrieve(groupid)
+    if group:
+        group.remove()
         return make_response('OK', 200)
     else:
         return make_response('Not found', 404)
